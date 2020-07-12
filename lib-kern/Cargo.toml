@@ -1,0 +1,14 @@
+[package]
+name = "lib-kern"
+version = "0.1.0"
+authors = ["Andrei Dimitriu @chronium <author@aatbe-lang.com>"]
+edition = "2018"
+
+[lib]
+name = "lib_kern"
+path = "src/lib.rs"
+test = false
+crate-type = ["lib"]
+
+[dependencies]
+spinning = { version = "0.0.3", default-features = false}
