@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, vec, vec::Vec};
 
-use crate::gfx::Command;
+use crate::gfx::{Command, CommandBuffer};
 
 pub trait GraphicsProvider {
     fn get_framebuffer(&self, mode: &VideoMode) -> Box<&mut [u32]>;
@@ -13,7 +13,7 @@ where
     pub provider: &'a T,
     pub mode: VideoMode,
     pub buffer: Vec<u32>,
-    pub command_buffer: Vec<Command>,
+    pub command_buffer: CommandBuffer,
 }
 
 impl<'a, T> VideoDevice<'a, T>
@@ -31,6 +31,10 @@ where
 
     pub fn push(&mut self, command: Command) {
         self.command_buffer.push(command);
+    }
+
+    pub fn push_many(&mut self, commands: CommandBuffer) {
+        self.command_buffer.extend(commands);
     }
 
     pub fn clear(&mut self, color: u32) {

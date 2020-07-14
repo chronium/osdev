@@ -1,19 +1,26 @@
-pub mod rect;
-
 pub mod common;
+pub mod rect;
 
 use super::video::VideoMode;
 
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{boxed::Box, fmt::Debug, vec::Vec};
 
+pub type CommandBuffer = Vec<Command>;
+
+pub trait FillDebug: FillShape + Debug {}
+impl FillDebug for rect::Rect {}
+pub trait OutlineDebug: OutlineShape + Debug {}
+impl OutlineDebug for rect::Rect {}
+
+#[derive(Debug)]
 pub enum Command {
     FillShape {
         color: u32,
-        shape: Box<dyn FillShape>,
+        shape: Box<dyn FillDebug>,
     },
     OutlineShape {
         color: u32,
-        shape: Box<dyn OutlineShape>,
+        shape: Box<dyn OutlineDebug>,
     },
     Clear {
         color: u32,
