@@ -3,10 +3,7 @@ pub mod bochs;
 use crate::ok;
 
 use bochs::BochsGraphicsAdapter;
-use lib_kern::{
-    gfx::{Command, FillShape, OutlineShape},
-    video::VideoDevice,
-};
+use lib_kern::{gfx::Command, video::VideoDevice};
 
 use alloc::{string::ToString, vec};
 
@@ -44,37 +41,30 @@ pub async fn init() {
 
     let mut video = VideoDevice::new(&bga, &mode);
 
-    #[inline(always)]
-    fn get_col(r: u8, g: u8, b: u8) -> u32 {
-        (u32::from(r) << 16) | (u32::from(g) << 8) | u32::from(b)
-    }
-
-    video.push(Command::Clear { color: 0x6495ED });
+    video.push(Command::Clear { color: 0xFF6495ED });
 
     use lib_kern::dom::{
-        css::{Color, Declaration, Rule, Selector, SimpleSelector, Stylesheet, Unit, Value},
-        elem,
+        color::Color,
+        css::{Declaration, Rule, Selector, SimpleSelector, Stylesheet, Unit, Value},
         layout::{layout_tree, Dimensions, Rect},
         painting::build_command_buffer,
+        parser::{css, html},
         style::style_tree,
-        AttrMap,
     };
 
-    let mut am = AttrMap::new();
-    am.insert("class".to_string(), "a".to_string());
-    let mut bm = AttrMap::new();
-    bm.insert("class".to_string(), "b".to_string());
-    let mut cm = AttrMap::new();
-    cm.insert("class".to_string(), "c".to_string());
-    let root = elem(
-        "div".to_string(),
-        am,
-        vec![elem(
-            "div".to_string(),
-            bm,
-            vec![elem("div".to_string(), cm, vec![])],
-        )],
+    let root = html::parse(
+        r#"
+<div class="a">
+    <div class="b">
+        <div class="c">
+        </div>
+    </div>
+</div>
+    "#
+        .to_string(),
     );
+
+    println!("{:#?}", root);
 
     let rules = vec![
         Rule {
@@ -100,15 +90,30 @@ pub async fn init() {
                 id: None,
                 class: vec!["a".to_string()],
             })],
-            declarations: vec![Declaration {
-                name: "background".to_string(),
-                value: Value::ColorValue(Color {
-                    r: 255,
-                    g: 0,
-                    b: 0,
-                    a: 0,
-                }),
-            }],
+            declarations: vec![
+                Declaration {
+                    name: "background".to_string(),
+                    value: Value::ColorValue(Color {
+                        r: 255,
+                        g: 0,
+                        b: 0,
+                        a: 255,
+                    }),
+                },
+                Declaration {
+                    name: "border-width".to_string(),
+                    value: Value::Length(2.0, Unit::Px),
+                },
+                Declaration {
+                    name: "border-color".to_string(),
+                    value: Value::ColorValue(Color {
+                        r: 0,
+                        g: 255,
+                        b: 0,
+                        a: 255,
+                    }),
+                },
+            ],
         },
         Rule {
             selectors: vec![Selector::Simple(SimpleSelector {
@@ -116,15 +121,30 @@ pub async fn init() {
                 id: None,
                 class: vec!["b".to_string()],
             })],
-            declarations: vec![Declaration {
-                name: "background".to_string(),
-                value: Value::ColorValue(Color {
-                    r: 0,
-                    g: 255,
-                    b: 0,
-                    a: 0,
-                }),
-            }],
+            declarations: vec![
+                Declaration {
+                    name: "background".to_string(),
+                    value: Value::ColorValue(Color {
+                        r: 0,
+                        g: 255,
+                        b: 0,
+                        a: 255,
+                    }),
+                },
+                Declaration {
+                    name: "border-width".to_string(),
+                    value: Value::Length(2.0, Unit::Px),
+                },
+                Declaration {
+                    name: "border-color".to_string(),
+                    value: Value::ColorValue(Color {
+                        r: 0,
+                        g: 0,
+                        b: 255,
+                        a: 255,
+                    }),
+                },
+            ],
         },
         Rule {
             selectors: vec![Selector::Simple(SimpleSelector {
@@ -132,15 +152,30 @@ pub async fn init() {
                 id: None,
                 class: vec!["c".to_string()],
             })],
-            declarations: vec![Declaration {
-                name: "background".to_string(),
-                value: Value::ColorValue(Color {
-                    r: 0,
-                    g: 0,
-                    b: 255,
-                    a: 0,
-                }),
-            }],
+            declarations: vec![
+                Declaration {
+                    name: "background".to_string(),
+                    value: Value::ColorValue(Color {
+                        r: 0,
+                        g: 0,
+                        b: 255,
+                        a: 255,
+                    }),
+                },
+                Declaration {
+                    name: "border-width".to_string(),
+                    value: Value::Length(2.0, Unit::Px),
+                },
+                Declaration {
+                    name: "border-color".to_string(),
+                    value: Value::ColorValue(Color {
+                        r: 255,
+                        g: 0,
+                        b: 0,
+                        a: 255,
+                    }),
+                },
+            ],
         },
     ];
 
@@ -157,11 +192,22 @@ pub async fn init() {
     };
 
     let stylesheet = Stylesheet { rules };
-    let styled_root = style_tree(&root, &stylesheet);
+    let styled_root = style_tree(&root, &stylesheet, &alloc::collections::BTreeMap::new());
     let layout_root = layout_tree(&styled_root, screen_block);
 
     let command_buffer = build_command_buffer(&layout_root);
     video.push_many(command_buffer);
+
+    let font_bytes = include_bytes!("FiraCode-Regular.ttf");
+    let font = video.load_font_from_bytes("FiraCode".to_string(), font_bytes);
+    video.push(Command::Text {
+        font: "FiraCode".to_string(),
+        text: "Hello World".to_string(),
+        h_size: 72.0,
+        v_size: 72.0,
+        x_pos: 0,
+        y_pos: 0,
+    });
 
     video.flush();
 }

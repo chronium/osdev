@@ -2,8 +2,7 @@ use x86_64::{
     registers::control::Cr3,
     structures::paging::{
         mapper::{MapToError, Mapper},
-        page_table::FrameError,
-        FrameAllocator, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size4KiB,
+        FrameAllocator, OffsetPageTable, PageTable, PageTableFlags, PhysFrame, Size4KiB,
     },
     PhysAddr, VirtAddr,
 };

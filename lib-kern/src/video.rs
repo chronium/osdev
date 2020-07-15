@@ -1,6 +1,6 @@
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap, string::String, vec, vec::Vec};
 
-use crate::gfx::{Command, CommandBuffer};
+use crate::gfx::{font::Font, Command, CommandBuffer};
 
 pub trait GraphicsProvider {
     fn get_framebuffer(&self, mode: &VideoMode) -> Box<&mut [u32]>;
@@ -14,6 +14,7 @@ where
     pub mode: VideoMode,
     pub buffer: Vec<u32>,
     pub command_buffer: CommandBuffer,
+    pub font_cache: BTreeMap<String, Font<'a>>,
 }
 
 impl<'a, T> VideoDevice<'a, T>
@@ -26,7 +27,13 @@ where
             mode: mode.clone(),
             buffer: vec![0u32; mode.width * mode.height],
             command_buffer: Vec::new(),
+            font_cache: BTreeMap::new(),
         }
+    }
+
+    pub fn load_font_from_bytes(&mut self, name: String, bytes: &'a [u8]) -> Option<()> {
+        self.font_cache.insert(name, Font::try_from_bytes(bytes)?);
+        Some(())
     }
 
     pub fn push(&mut self, command: Command) {
@@ -43,7 +50,7 @@ where
 
     pub fn flush(&mut self) {
         for command in self.command_buffer.iter() {
-            command.execute(&mut self.buffer, &self.mode);
+            command.execute(&self.font_cache, &mut self.buffer, &self.mode);
         }
         self.command_buffer.clear();
 

@@ -47,12 +47,23 @@ impl Rect {
     }
 }
 
+impl From<Rect> for crate::gfx::rect::Rect {
+    fn from(lr: Rect) -> crate::gfx::rect::Rect {
+        crate::gfx::rect::Rect {
+            x: lr.x as i32,
+            y: lr.y as i32,
+            w: lr.width as i32,
+            h: lr.height as i32,
+        }
+    }
+}
+
 #[derive(Debug, Default, Copy, Clone)]
 pub struct EdgeSizes {
-    left: f32,
-    right: f32,
-    top: f32,
-    bottom: f32,
+    pub left: f32,
+    pub right: f32,
+    pub top: f32,
+    pub bottom: f32,
 }
 
 #[derive(Debug)]
@@ -121,7 +132,7 @@ impl<'a> LayoutBox<'a> {
         let mut margin_right = style.lookup("margin-right", "margin", &zero);
 
         let border_left = style.lookup("border-left-width", "border-width", &zero);
-        let border_right = style.lookup("border-right-width", "border-right", &zero);
+        let border_right = style.lookup("border-right-width", "border-width", &zero);
 
         let padding_left = style.lookup("padding-left", "padding", &zero);
         let padding_right = style.lookup("padding-right", "padding", &zero);
@@ -136,7 +147,10 @@ impl<'a> LayoutBox<'a> {
             &width,
         ]
         .iter()
-        .map(|v| v.to_px())
+        .map(|v| {
+            v.to_px()
+                .unwrap_or(v.percent_to_px(containing_block.content.width))
+        })
         .sum();
 
         if width != auto && total > containing_block.content.width {
@@ -153,7 +167,7 @@ impl<'a> LayoutBox<'a> {
 
         match (width == auto, margin_left == auto, margin_right == auto) {
             (false, false, false) => {
-                margin_right = Value::Length(margin_right.to_px() + underflow, Unit::Px)
+                margin_right = Value::Length(margin_right.to_px().unwrap() + underflow, Unit::Px)
             }
 
             (false, false, true) => margin_right = Value::Length(underflow, Unit::Px),
@@ -171,7 +185,8 @@ impl<'a> LayoutBox<'a> {
                     width = Value::Length(underflow, Unit::Px);
                 } else {
                     width = Value::Length(0.0, Unit::Px);
-                    margin_right = Value::Length(margin_right.to_px() + underflow, Unit::Px);
+                    margin_right =
+                        Value::Length(margin_right.to_px().unwrap() + underflow, Unit::Px);
                 }
             }
 
@@ -182,16 +197,18 @@ impl<'a> LayoutBox<'a> {
         }
 
         let d = &mut self.dimensions;
-        d.content.width = width.to_px();
+        d.content.width = width
+            .to_px()
+            .unwrap_or(width.percent_to_px(containing_block.content.width));
 
-        d.padding.left = padding_left.to_px();
-        d.padding.right = padding_right.to_px();
+        d.padding.left = padding_left.to_px().unwrap();
+        d.padding.right = padding_right.to_px().unwrap();
 
-        d.border.left = border_left.to_px();
-        d.border.right = border_right.to_px();
+        d.border.left = border_left.to_px().unwrap();
+        d.border.right = border_right.to_px().unwrap();
 
-        d.margin.left = margin_left.to_px();
-        d.margin.right = margin_right.to_px();
+        d.margin.left = margin_left.to_px().unwrap();
+        d.margin.right = margin_right.to_px().unwrap();
     }
 
     fn calculate_block_position(&mut self, containing_block: Dimensions) {
@@ -200,14 +217,29 @@ impl<'a> LayoutBox<'a> {
 
         let zero = Value::Length(0.0, Unit::Px);
 
-        d.margin.top = style.lookup("margin-top", "margin", &zero).to_px();
-        d.margin.bottom = style.lookup("margin-bottom", "margin", &zero).to_px();
+        d.margin.top = style.lookup("margin-top", "margin", &zero).to_px().unwrap();
+        d.margin.bottom = style
+            .lookup("margin-bottom", "margin", &zero)
+            .to_px()
+            .unwrap();
 
-        d.border.top = style.lookup("margin-top", "margin", &zero).to_px();
-        d.border.bottom = style.lookup("margin-bottom", "margin", &zero).to_px();
+        d.border.top = style
+            .lookup("border-top", "border-width", &zero)
+            .to_px()
+            .unwrap();
+        d.border.bottom = style
+            .lookup("border-bottom", "border-width", &zero)
+            .to_px()
+            .unwrap();
 
-        d.padding.top = style.lookup("padding-top", "padding", &zero).to_px();
-        d.padding.bottom = style.lookup("padding-bottom", "padding", &zero).to_px();
+        d.padding.top = style
+            .lookup("padding-top", "padding", &zero)
+            .to_px()
+            .unwrap();
+        d.padding.bottom = style
+            .lookup("padding-bottom", "padding", &zero)
+            .to_px()
+            .unwrap();
 
         d.content.x = containing_block.content.x + d.margin.left + d.border.left + d.padding.left;
 

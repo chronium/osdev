@@ -2,27 +2,15 @@ use super::{
     common::{line, plot, Point},
     FillShape, OutlineShape, VideoMode,
 };
-use crate::dom::layout;
 
 use alloc::vec::Vec;
 
 #[derive(Debug)]
 pub struct Rect {
-    pub x: isize,
-    pub y: isize,
-    pub w: isize,
-    pub h: isize,
-}
-
-impl From<layout::Rect> for Rect {
-    fn from(lr: layout::Rect) -> Rect {
-        Rect {
-            x: lr.x as isize,
-            y: lr.y as isize,
-            w: lr.width as isize,
-            h: lr.height as isize,
-        }
-    }
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
 }
 
 impl OutlineShape for Rect {

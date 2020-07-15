@@ -90,13 +90,11 @@ impl Writer {
 
     fn update_cursor(&mut self) {
         let off = self.row * BUF_WIDTH + self.col;
-        let mut addr = Port::new(0x03D4);
-        let mut data = Port::new(0x03D5);
         unsafe {
-            addr.write(0x0E_u8);
-            data.write((off >> 0x08) as u8);
-            addr.write(0x0F_u8);
-            data.write((off & 0xFF) as u8);
+            self.addr.write(0x0E_u8);
+            self.data.write((off >> 0x08) as u8);
+            self.addr.write(0x0F_u8);
+            self.data.write((off & 0xFF) as u8);
         }
     }
 
