@@ -77,6 +77,7 @@ pub fn _print(args: fmt::Arguments) {
 
 pub fn init() {
     gdt::init();
+    task::mouse::init();
     idt::init();
     pic::init();
 

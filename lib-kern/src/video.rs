@@ -6,6 +6,8 @@ pub trait GraphicsProvider {
     fn get_framebuffer(&self, mode: &VideoMode) -> Box<&mut [u32]>;
 }
 
+pub type FontCache<'a> = BTreeMap<String, Font<'a>>;
+
 pub struct VideoDevice<'a, T>
 where
     T: GraphicsProvider,
@@ -14,7 +16,7 @@ where
     pub mode: VideoMode,
     pub buffer: Vec<u32>,
     pub command_buffer: CommandBuffer,
-    pub font_cache: BTreeMap<String, Font<'a>>,
+    pub font_cache: FontCache<'a>,
 }
 
 impl<'a, T> VideoDevice<'a, T>

@@ -1,8 +1,7 @@
 #![no_std]
-#![feature(box_syntax, slice_fill)]
+#![feature(box_syntax, slice_fill, core_intrinsics)]
 
 pub mod ansi;
-pub mod dom;
 pub mod gfx;
 pub mod io;
 pub mod schema;

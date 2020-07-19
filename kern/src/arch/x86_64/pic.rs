@@ -9,6 +9,7 @@ pub const PIC_2_OFFS: u8 = PIC_1_OFFS + 8;
 pub enum InterruptIndex {
     Timer = PIC_1_OFFS,
     Keyboard,
+    Mouse = PIC_1_OFFS + 12,
 }
 
 impl From<InterruptIndex> for u8 {

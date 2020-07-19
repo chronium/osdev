@@ -4,7 +4,7 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, Pag
 use super::pic::{InterruptIndex, PICS};
 
 lazy_static! {
-    static ref IDT: InterruptDescriptorTable = {
+    pub static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
         idt.page_fault.set_handler_fn(page_fault_handler);
@@ -16,6 +16,8 @@ lazy_static! {
 
         idt[InterruptIndex::Timer.into()].set_handler_fn(timer_interrupt_handler);
         idt[InterruptIndex::Keyboard.into()].set_handler_fn(keyboard_interrupt_handler);
+        idt[InterruptIndex::Mouse.into()]
+            .set_handler_fn(super::task::mouse::mouse_interrupt_handler);
 
         idt
     };

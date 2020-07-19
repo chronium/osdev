@@ -57,6 +57,9 @@ pub fn line(from: &Point, to: &Point, color: u32, buffer: &mut Vec<u32>, mode: &
 
 #[inline(always)]
 pub fn plot(pt: &Point, color: u32, buffer: &mut Vec<u32>, mode: &VideoMode) {
+    if pt.x < 0 || pt.x >= mode.width as i32 || pt.y < 0 || pt.y >= mode.height as i32 {
+        return;
+    }
     let pt = pt.x + pt.y * mode.width as i32;
     assert!(!pt.is_negative());
     let alpha = (((color & 0xFF000000) >> 24) as f32) / 255.0;

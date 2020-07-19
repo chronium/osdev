@@ -11,13 +11,14 @@
 
 #[macro_use]
 mod arch;
+mod schema;
 
 extern crate alloc;
 
 use arch::{
     mem,
     mem::paging,
-    task::{executor::Executor, keyboard, Task},
+    task::{executor::Executor, keyboard, mouse::MousePacketStream, Task},
 };
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
@@ -40,6 +41,17 @@ macro_rules! fail {
     };
 }
 
+macro_rules! check_ok {
+    ($msg:expr, $val:expr) => {
+        print!("{}", $msg);
+        if $val.is_ok() {
+            ok!();
+        } else {
+            fail!();
+        };
+    };
+}
+
 pub static MAPPER: Once<Mutex<OffsetPageTable>> = Once::new();
 pub static FRAME_ALLOC: Once<Mutex<paging::BootInfoFrameAllocator>> = Once::new();
 
@@ -57,40 +69,52 @@ fn kmain(boot_info: &'static BootInfo) -> ! {
 
     let mut executor = Executor::new();
     executor.spawn(Task::new(keyboard::print_keypresses()));
-    executor.spawn(Task::new(test_devices()));
-    executor.spawn(Task::new(arch::video::init()));
+    executor.spawn(Task::new(setup_devices()));
+    executor.spawn(Task::new(setup_schemas()));
+    executor.spawn(Task::new(dump()));
+    //executor.spawn(Task::new(arch::video::init()));
     executor.run();
 }
 
-async fn test_devices() {
-    use arch::pci::{PCIDevice, PCIFind};
-    let dev = PCIDevice::search(&PCIFind::new(0x1AF4, 0x1000), None).unwrap();
-    println!(
-        "{:X}:{:X}:{:X}:{:X}:{:X}:{:X}",
-        dev.read8(0x14),
-        dev.read8(0x15),
-        dev.read8(0x16),
-        dev.read8(0x17),
-        dev.read8(0x18),
-        dev.read8(0x19)
+async fn setup_devices() {
+    println!("\nDEVICES");
+    check_ok!(
+        "Registering tty0",
+        DEVICE_MAP
+            .lock()
+            .insert("tty0", arch::vga_text::WriterDevice)
+    );
+    check_ok!(
+        "Registering sty0",
+        DEVICE_MAP.lock().insert("sty0", arch::SerialDevice(0))
     );
 
-    DEVICE_MAP
-        .lock()
-        .insert("tty0", arch::vga_text::WriterDevice);
-    DEVICE_MAP.lock().insert("sty0", arch::SerialDevice(0));
+    // initialize mouse queue, to be removed
+    MousePacketStream::new();
+}
 
+async fn setup_schemas() {
+    println!("\nSCHEMAS");
+    check_ok!(
+        "Registering sys schema",
+        SCHEMA_MAP
+            .lock()
+            .register("sys", schema::sys::SysSchema::new())
+    );
+}
+
+async fn dump() {
+    println!("\nDumping devices + schemas");
     for dev in DEVICE_MAP.lock().dump_names() {
         println!("Device {}", dev);
     }
-
-    DEVICE_MAP.lock().get("tty0").unwrap().write_u8(b'A');
 }
 
 use lazy_static::lazy_static;
-use lib_kern::io::DeviceMap;
+use lib_kern::{io::DeviceMap, schema::SchemaMap};
 lazy_static! {
     static ref DEVICE_MAP: spin::Mutex<DeviceMap> = spin::Mutex::new(DeviceMap::new());
+    static ref SCHEMA_MAP: spin::Mutex<SchemaMap> = spin::Mutex::new(SchemaMap::new());
 }
 
 #[panic_handler]

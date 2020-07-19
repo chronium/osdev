@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 use super::common;
 use crate::video::VideoMode;
 
+#[derive(Debug)]
 pub struct Font<'a> {
     inner: rtFont<'a>,
 }
@@ -23,6 +24,7 @@ impl<'a> Font<'a> {
     }
 }
 
+#[allow(unused)]
 pub struct Layout<'a> {
     inner: Vec<PositionedGlyph<'a>>,
     v_metrics: VMetrics,
@@ -70,7 +72,14 @@ impl<'a> Layout<'a> {
             .unwrap_or(0.0)
     }
 
-    pub fn paint_at(&self, x_pos: i32, y_pos: i32, buffer: &mut Vec<u32>, mode: &VideoMode) {
+    pub fn paint_at(
+        &self,
+        x_pos: i32,
+        y_pos: i32,
+        color: u32,
+        buffer: &mut Vec<u32>,
+        mode: &VideoMode,
+    ) {
         for g in &self.inner {
             if let Some(bb) = g.pixel_bounding_box() {
                 g.draw(|x, y, v| {
@@ -79,7 +88,7 @@ impl<'a> Layout<'a> {
 
                     common::plot(
                         &common::Point { x, y },
-                        ((gamma_correct!(v) as u32) << 24) | 0xFFFFFF,
+                        ((gamma_correct!(v) as u32) << 24) | (color & 0xFFFFFF),
                         buffer,
                         mode,
                     );
@@ -91,26 +100,10 @@ impl<'a> Layout<'a> {
 
 #[no_mangle]
 pub extern "C" fn fmaxf(x: f32, y: f32) -> f32 {
-    // IEEE754 says: maxNum(x, y) is the canonicalized number y if x < y, x if y < x, the
-    // canonicalized number if one operand is a number and the other a quiet NaN. Otherwise it
-    // is either x or y, canonicalized (this means results might differ among implementations).
-    // When either x or y is a signalingNaN, then the result is according to 6.2.
-    //
-    // Since we do not support sNaN in Rust yet, we do not need to handle them.
-    // FIXME(nagisa): due to https://bugs.llvm.org/show_bug.cgi?id=33303 we canonicalize by
-    // multiplying by 1.0. Should switch to the `canonicalize` when it works.
     (if x.is_nan() || x < y { y } else { x }) * 1.0
 }
 
 #[no_mangle]
 pub extern "C" fn fminf(x: f32, y: f32) -> f32 {
-    // IEEE754 says: minNum(x, y) is the canonicalized number x if x < y, y if y < x, the
-    // canonicalized number if one operand is a number and the other a quiet NaN. Otherwise it
-    // is either x or y, canonicalized (this means results might differ among implementations).
-    // When either x or y is a signalingNaN, then the result is according to 6.2.
-    //
-    // Since we do not support sNaN in Rust yet, we do not need to handle them.
-    // FIXME(nagisa): due to https://bugs.llvm.org/show_bug.cgi?id=33303 we canonicalize by
-    // multiplying by 1.0. Should switch to the `canonicalize` when it works.
     (if y.is_nan() || x < y { x } else { y }) * 1.0
 }

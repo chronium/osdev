@@ -8,8 +8,9 @@ use core::{
 
 pub mod executor;
 pub mod keyboard;
+pub mod mouse;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct TaskId(u64);
 
 impl TaskId {

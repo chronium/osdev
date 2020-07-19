@@ -40,6 +40,7 @@ lazy_static! {
     };
 }
 
+#[allow(unused)]
 struct Selectors {
     kern_code: SegmentSelector,
     user_code: SegmentSelector,

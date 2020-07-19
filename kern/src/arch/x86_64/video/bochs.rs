@@ -8,27 +8,31 @@ use lib_kern::video::{GraphicsProvider, VideoMode};
 lazy_static! {
     pub static ref BGA_SIGNATURE: PCIFind = PCIFind::new(0x1234, 0x1111);
     static ref DEFAULT_VIDEO_MODE: VideoMode = VideoMode {
-        width: 1280,
-        height: 720,
+        width: 800,
+        height: 600,
         bpp: 32
     };
 }
 
-const VBE_DISPI_GETCAPS: u16 = 2;
-const VBE_DISPI_NUM_REGISTERS: u16 = 10;
+#[allow(unused)]
+mod registers {
+    pub const VBE_DISPI_GETCAPS: u16 = 2;
+    pub const VBE_DISPI_NUM_REGISTERS: u16 = 10;
 
-const VBE_DISPI_INDEX_ID: u16 = 0;
-const VBE_DISPI_INDEX_XRES: u16 = 1;
-const VBE_DISPI_INDEX_YRES: u16 = 2;
-const VBE_DISPI_INDEX_BPP: u16 = 3;
-const VBE_DISPI_INDEX_ENABLE: u16 = 4;
+    pub const VBE_DISPI_INDEX_ID: u16 = 0;
+    pub const VBE_DISPI_INDEX_XRES: u16 = 1;
+    pub const VBE_DISPI_INDEX_YRES: u16 = 2;
+    pub const VBE_DISPI_INDEX_BPP: u16 = 3;
+    pub const VBE_DISPI_INDEX_ENABLE: u16 = 4;
 
-const VBE_DISPI_DISABLED: u16 = 0;
-const VBE_DISPI_ENABLED: u16 = 1;
+    pub const VBE_DISPI_DISABLED: u16 = 0;
+    pub const VBE_DISPI_ENABLED: u16 = 1;
 
-const VBE_DISPI_LFB_ENABLED: u16 = 64;
-const VBE_DISPI_NOCLEAR: u16 = 128;
+    pub const VBE_DISPI_LFB_ENABLED: u16 = 64;
+    pub const VBE_DISPI_NOCLEAR: u16 = 128;
+}
 
+#[allow(unused)]
 pub struct BochsGraphicsAdapter {
     pci_device: PCIDevice,
     pub max_bpp: u16,
@@ -36,7 +40,7 @@ pub struct BochsGraphicsAdapter {
     pub max_height: usize,
     framebuffer_bar: PCIBAR,
     mmio_bar: PCIBAR,
-    registers: Unique<[u16; VBE_DISPI_NUM_REGISTERS as usize]>,
+    registers: Unique<[u16; registers::VBE_DISPI_NUM_REGISTERS as usize]>,
 }
 
 impl GraphicsProvider for BochsGraphicsAdapter {
@@ -49,6 +53,7 @@ impl GraphicsProvider for BochsGraphicsAdapter {
     }
 }
 
+#[allow(unused)]
 impl BochsGraphicsAdapter {
     pub fn new(dev: &PCIDevice) -> Self {
         let fb_bar = dev.get_bar(0);
@@ -76,13 +81,13 @@ impl BochsGraphicsAdapter {
     }
 
     pub fn version(&self) -> u16 {
-        self.read_reg(VBE_DISPI_INDEX_ID)
+        self.read_reg(registers::VBE_DISPI_INDEX_ID)
     }
 
     pub fn init(mut self) -> Self {
-        let max_bpp = self.get_capability(VBE_DISPI_INDEX_BPP);
-        let max_width = self.get_capability(VBE_DISPI_INDEX_XRES);
-        let max_height = self.get_capability(VBE_DISPI_INDEX_YRES);
+        let max_bpp = self.get_capability(registers::VBE_DISPI_INDEX_BPP);
+        let max_width = self.get_capability(registers::VBE_DISPI_INDEX_XRES);
+        let max_height = self.get_capability(registers::VBE_DISPI_INDEX_YRES);
 
         self.max_bpp = max_bpp;
         self.max_width = max_width as usize;
@@ -92,16 +97,19 @@ impl BochsGraphicsAdapter {
     }
 
     pub fn set_video_mode(&mut self, mode: &VideoMode, clear: bool) {
-        let mut enable = VBE_DISPI_ENABLED | VBE_DISPI_LFB_ENABLED;
+        let mut enable = registers::VBE_DISPI_ENABLED | registers::VBE_DISPI_LFB_ENABLED;
         if !clear {
-            enable |= VBE_DISPI_NOCLEAR;
+            enable |= registers::VBE_DISPI_NOCLEAR;
         }
 
-        self.write_reg(VBE_DISPI_INDEX_ENABLE, VBE_DISPI_DISABLED);
-        self.write_reg(VBE_DISPI_INDEX_XRES, mode.width as u16);
-        self.write_reg(VBE_DISPI_INDEX_YRES, mode.height as u16);
-        self.write_reg(VBE_DISPI_INDEX_BPP, mode.bpp);
-        self.write_reg(VBE_DISPI_INDEX_ENABLE, enable);
+        self.write_reg(
+            registers::VBE_DISPI_INDEX_ENABLE,
+            registers::VBE_DISPI_DISABLED,
+        );
+        self.write_reg(registers::VBE_DISPI_INDEX_XRES, mode.width as u16);
+        self.write_reg(registers::VBE_DISPI_INDEX_YRES, mode.height as u16);
+        self.write_reg(registers::VBE_DISPI_INDEX_BPP, mode.bpp);
+        self.write_reg(registers::VBE_DISPI_INDEX_ENABLE, enable);
     }
 
     pub fn get_default_mode(&self) -> Option<VideoMode> {
@@ -119,21 +127,24 @@ impl BochsGraphicsAdapter {
     }
 
     fn read_reg(&self, index: u16) -> u16 {
-        assert!(index < VBE_DISPI_NUM_REGISTERS);
+        assert!(index < registers::VBE_DISPI_NUM_REGISTERS);
         unsafe { self.registers.as_ref()[index as usize] }
     }
 
     fn write_reg(&mut self, index: u16, val: u16) {
-        assert!(index < VBE_DISPI_NUM_REGISTERS);
+        assert!(index < registers::VBE_DISPI_NUM_REGISTERS);
         unsafe { self.registers.as_mut()[index as usize] = val };
     }
 
     fn get_capability(&mut self, index: u16) -> u16 {
-        let was_enabled = self.read_reg(VBE_DISPI_INDEX_ENABLE);
-        self.write_reg(VBE_DISPI_INDEX_ENABLE, was_enabled | VBE_DISPI_GETCAPS);
+        let was_enabled = self.read_reg(registers::VBE_DISPI_INDEX_ENABLE);
+        self.write_reg(
+            registers::VBE_DISPI_INDEX_ENABLE,
+            was_enabled | registers::VBE_DISPI_GETCAPS,
+        );
         let cap = self.read_reg(index);
         assert!(cap != 0); // Someone, if you can find why this is needed, please tell me. I'm desperate
-        self.write_reg(VBE_DISPI_INDEX_ENABLE, was_enabled);
+        self.write_reg(registers::VBE_DISPI_INDEX_ENABLE, was_enabled);
         cap
     }
 

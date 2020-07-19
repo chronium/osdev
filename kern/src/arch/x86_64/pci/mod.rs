@@ -136,6 +136,7 @@ pub struct PCIDevice {
     dev_type: PCIDeviceType,
 }
 
+#[allow(unused)]
 impl PCIDevice {
     pub unsafe fn pci_read32(address: &PCIDeviceAddress, offset: u8) -> u32 {
         assert!(offset & 0x3 == 0);

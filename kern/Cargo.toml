@@ -11,7 +11,7 @@ panic = "abort"
 panic = "abort"
 
 [dependencies]
-bootloader = { version = "0.9.5", features = ["map_physical_memory"]}
+bootloader = { version = "0.9.5", features = ["map_physical_memory"] }
 volatile = "0.2.6"
 spin = "0.5.2"
 x86_64 = "0.11.1"
@@ -19,7 +19,8 @@ uart_16550 = "0.2.7"
 pic8259_simple = "0.2.0"
 pc-keyboard = "0.5.0"
 linked_list_allocator = "0.8.4"
-spinning = { version = "0.0.3", default-features = false}
+spinning = { version = "0.0.3", default-features = false }
+hashbrown = "0.8.1"
 
 [dependencies.lazy_static]
 version = "1.4.0"
@@ -43,4 +44,14 @@ features = ["alloc"]
 path = "../lib-kern"
 
 [package.metadata.bootimage]
-run-command = ["qemu-system-x86_64", "-drive", "format=raw,file={}", "-m", "1G", "-serial", "stdio", "-device", "virtio-net-pci"]
+run-command = [
+    "qemu-system-x86_64",
+    "-drive",
+    "format=raw,file={}",
+    "-m",
+    "1G",
+    "-serial",
+    "stdio",
+    "-device",
+    "virtio-net-pci",
+]

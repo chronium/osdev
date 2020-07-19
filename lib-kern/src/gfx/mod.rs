@@ -26,6 +26,7 @@ pub enum Command {
         shape: Box<dyn OutlineDebug>,
     },
     Text {
+        color: u32,
         text: String,
         font: String,
         v_size: f32,
@@ -56,6 +57,7 @@ impl Command {
             }
             .fill(*color, buffer, mode),
             Self::Text {
+                color,
                 font,
                 text,
                 v_size,
@@ -65,7 +67,7 @@ impl Command {
             } => {
                 let font = font_cache.get(font).expect("cannot find font");
                 let layout = font.layout(text.as_str(), (*v_size, *h_size));
-                layout.paint_at(*x_pos, *y_pos, buffer, mode);
+                layout.paint_at(*x_pos, *y_pos, *color, buffer, mode);
             }
         }
     }

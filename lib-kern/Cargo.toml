@@ -15,3 +15,4 @@ spinning = { version = "0.0.3", default-features = false }
 libm = { version = "0.2.1", default-features = false }
 owned_ttf_parser = { default-features = false }
 rusttype = { version = "0.9.2", default-features = false, features = ["libm-math"] }
+hashbrown = "0.8.1"

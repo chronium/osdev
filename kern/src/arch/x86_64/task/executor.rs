@@ -1,7 +1,8 @@
 use super::{Task, TaskId};
-use alloc::{collections::BTreeMap, sync::Arc, task::Wake};
+use alloc::{sync::Arc, task::Wake};
 use core::task::{Context, Poll, Waker};
 use crossbeam_queue::ArrayQueue;
+use hashbrown::HashMap;
 
 struct TaskWaker {
     task_id: TaskId,
@@ -32,17 +33,17 @@ impl Wake for TaskWaker {
 }
 
 pub struct Executor {
-    tasks: BTreeMap<TaskId, Task>,
+    tasks: HashMap<TaskId, Task>,
     task_queue: Arc<ArrayQueue<TaskId>>,
-    waker_cache: BTreeMap<TaskId, Waker>,
+    waker_cache: HashMap<TaskId, Waker>,
 }
 
 impl Executor {
     pub fn new() -> Self {
         Self {
-            tasks: BTreeMap::new(),
+            tasks: HashMap::new(),
             task_queue: Arc::new(ArrayQueue::new(100)),
-            waker_cache: BTreeMap::new(),
+            waker_cache: HashMap::new(),
         }
     }
 
