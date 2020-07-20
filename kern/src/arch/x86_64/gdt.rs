@@ -49,7 +49,6 @@ struct Selectors {
 }
 
 pub fn init() {
-    use crate::ok;
     use x86_64::instructions::{segmentation::set_cs, tables::load_tss};
 
     GDT.0.load();

@@ -1,5 +1,4 @@
 use pic8259_simple::ChainedPics;
-use spin::Mutex;
 
 pub const PIC_1_OFFS: u8 = 32;
 pub const PIC_2_OFFS: u8 = PIC_1_OFFS + 8;
@@ -24,11 +23,10 @@ impl From<InterruptIndex> for usize {
     }
 }
 
-pub static PICS: Mutex<ChainedPics> =
-    Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFS, PIC_2_OFFS) });
+pub static PICS: spin::Mutex<ChainedPics> =
+    spin::Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFS, PIC_2_OFFS) });
 
 pub fn init() {
-    use crate::ok;
     unsafe {
         PICS.lock().initialize();
     }

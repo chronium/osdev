@@ -8,8 +8,6 @@ use crossbeam_queue::ArrayQueue;
 use futures_util::{stream::Stream, task::AtomicWaker};
 use x86_64::{instructions::port::Port, structures::idt::InterruptStackFrame};
 
-use spin::Mutex;
-
 #[allow(unused)]
 pub enum MousePacket {
     PositionRelative(i8, i8),
@@ -122,8 +120,8 @@ pub fn init() {
 static mut MOUSE_CYCLE: u8 = 0;
 static mut MOUSE_MSG: [u8; 3] = [0u8; 3];
 
-pub static MOUSE_DX: Mutex<i8> = Mutex::new(0);
-pub static MOUSE_DY: Mutex<i8> = Mutex::new(0);
+pub static MOUSE_DX: spin::Mutex<i8> = spin::Mutex::new(0);
+pub static MOUSE_DY: spin::Mutex<i8> = spin::Mutex::new(0);
 
 pub extern "x86-interrupt" fn mouse_interrupt_handler(_stack_frame: &mut InterruptStackFrame) {
     unsafe {

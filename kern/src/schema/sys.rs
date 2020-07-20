@@ -1,7 +1,14 @@
-use lib_kern::schema::{Schema, SchemaId};
+use lib_kern::schema::{FileResult, FileType, Schema, SchemaId};
+
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+use hashbrown::HashMap;
 
 pub struct SysSchema {
     schema_id: Option<SchemaId>,
+    sysinfo: HashMap<String, String>,
 }
 
 impl Schema for SysSchema {
@@ -16,10 +23,28 @@ impl Schema for SysSchema {
 
         self.schema_id = Some(id);
     }
+
+    fn find(&self, path: &String) -> Option<FileType> {
+        self.sysinfo.get(path).map(|_| FileType::File)
+    }
+
+    fn open(&mut self, path: &String) -> FileResult {
+        todo!()
+    }
+
+    fn close(&mut self, path: &String) -> FileResult {
+        todo!()
+    }
 }
 
 impl SysSchema {
     pub fn new() -> Self {
-        Self { schema_id: None }
+        let mut sysinfo = HashMap::new();
+        sysinfo.insert("info".to_string(), "Hello World".to_string());
+
+        Self {
+            schema_id: None,
+            sysinfo,
+        }
     }
 }

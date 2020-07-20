@@ -10,6 +10,8 @@
 )]
 
 #[macro_use]
+pub mod log;
+#[macro_use]
 mod arch;
 mod schema;
 
@@ -26,31 +28,6 @@ use spinning::{Mutex, Once};
 use x86_64::{structures::paging::OffsetPageTable, VirtAddr};
 
 entry_point!(kmain);
-
-#[macro_export]
-macro_rules! ok {
-    () => {
-        print!(" [\x1b[32mOK\x1b[0m]\n");
-    };
-}
-
-#[macro_export]
-macro_rules! fail {
-    () => {
-        print!(" [\x1b[31mFAIL\x1b[0m]\n");
-    };
-}
-
-macro_rules! check_ok {
-    ($msg:expr, $val:expr) => {
-        print!("{}", $msg);
-        if $val.is_ok() {
-            ok!();
-        } else {
-            fail!();
-        };
-    };
-}
 
 pub static MAPPER: Once<Mutex<OffsetPageTable>> = Once::new();
 pub static FRAME_ALLOC: Once<Mutex<paging::BootInfoFrameAllocator>> = Once::new();
@@ -94,12 +71,13 @@ async fn setup_devices() {
 }
 
 async fn setup_schemas() {
+    use alloc::string::ToString;
     println!("\nSCHEMAS");
     check_ok!(
         "Registering sys schema",
         SCHEMA_MAP
             .lock()
-            .register("sys", schema::sys::SysSchema::new())
+            .register("sys".to_string(), schema::sys::SysSchema::new())
     );
 }
 
@@ -108,13 +86,15 @@ async fn dump() {
     for dev in DEVICE_MAP.lock().dump_names() {
         println!("Device {}", dev);
     }
+
+    println!("{:?}", SCHEMA_MAP.lock().find("sys://info"));
 }
 
 use lazy_static::lazy_static;
 use lib_kern::{io::DeviceMap, schema::SchemaMap};
 lazy_static! {
-    static ref DEVICE_MAP: spin::Mutex<DeviceMap> = spin::Mutex::new(DeviceMap::new());
-    static ref SCHEMA_MAP: spin::Mutex<SchemaMap> = spin::Mutex::new(SchemaMap::new());
+    static ref DEVICE_MAP: Mutex<DeviceMap> = Mutex::new(DeviceMap::new());
+    static ref SCHEMA_MAP: Mutex<SchemaMap> = Mutex::new(SchemaMap::new());
 }
 
 #[panic_handler]

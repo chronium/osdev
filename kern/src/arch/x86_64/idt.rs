@@ -24,7 +24,6 @@ lazy_static! {
 }
 
 pub fn init() {
-    use crate::ok;
     IDT.load();
     print!("IDT loaded");
     ok!();
