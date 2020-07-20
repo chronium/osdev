@@ -87,7 +87,10 @@ async fn dump() {
         println!("Device {}", dev);
     }
 
-    println!("{:?}", SCHEMA_MAP.lock().find("sys://info"));
+    println!("find: {:?}", SCHEMA_MAP.lock().find("sys://info"));
+    let info = SCHEMA_MAP.lock().open("sys://info");
+    println!("open: {:?}", info);
+    println!("close: {:?}", SCHEMA_MAP.lock().close(&info.unwrap()));
 }
 
 use lazy_static::lazy_static;
