@@ -51,6 +51,15 @@ impl Schema for SysSchema {
             Ok(*fid)
         }
     }
+    fn read(&self, fid: &FileId, buf: &mut Vec<u8>) -> Result<usize, FileError> {
+        if !self.open_paths.contains_key(fid) {
+            Err(FileError::NotFound)
+        } else {
+            let val = &self.sysinfo[&self.open_paths[fid]];
+            buf.extend_from_slice(&val.as_bytes()[..]);
+            Ok(val.len())
+        }
+    }
 }
 
 impl SysSchema {

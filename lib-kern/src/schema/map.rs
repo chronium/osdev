@@ -1,41 +1,12 @@
+use super::{split_schema, FileError, FileId, FileType, Schema, SchemaError, SchemaId};
 use hashbrown::HashMap;
+use spinning::Mutex;
 
 use alloc::{
     boxed::Box,
     string::{String, ToString},
     vec::Vec,
 };
-use spinning::Mutex;
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-pub struct FileId(usize);
-
-#[derive(Debug)]
-pub enum FileType {
-    File,
-    Directory,
-}
-
-#[derive(Debug)]
-pub enum FileError {
-    NotFound,
-    AlreadyOpen,
-}
-
-pub type FileResult = Result<FileId, FileError>;
-
-pub trait Schema {
-    fn schema_id(&self) -> SchemaId;
-    fn register(&mut self, id: SchemaId);
-
-    fn find(&self, path: &String) -> Option<FileType>;
-
-    fn open(&mut self, path: &String, fid: FileId) -> FileResult;
-    fn close(&mut self, fid: &FileId) -> FileResult;
-}
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-pub struct SchemaId(usize);
 
 pub struct SchemaMap {
     schema_names: HashMap<String, SchemaId>,
@@ -48,7 +19,7 @@ pub struct SchemaMap {
 }
 
 impl SchemaMap {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             schema_names: HashMap::new(),
             schema_handles: HashMap::new(),
@@ -149,27 +120,21 @@ impl SchemaMap {
         }
     }
 
+    pub fn read(&self, fid: &FileId, buf: &mut Vec<u8>) -> Result<usize, SchemaError> {
+        if !self.open_paths.contains_key(fid) {
+            return Err(SchemaError::NotOpen(*fid));
+        }
+
+        let handle = self.fid_schema[fid];
+        let schema = &self.schema_handles[&handle];
+
+        schema
+            .lock()
+            .read(fid, buf)
+            .or(Err(SchemaError::NoRead(*fid)))
+    }
+
     pub fn dump_names(&self) -> Vec<&String> {
         self.schema_names.keys().collect()
     }
-}
-
-fn split_schema(path: &str) -> (String, String) {
-    if let &[schema, rest] = path.split(":").collect::<Vec<_>>().as_slice() {
-        (
-            schema.to_string(),
-            rest.trim_start_matches("//").to_string(),
-        )
-    } else {
-        unreachable!();
-    }
-}
-
-#[derive(Debug)]
-pub enum SchemaError {
-    SameNameRegistered(String),
-    NoSchema(String),
-    NotFound(String),
-    AlreadyOpen(String),
-    NotOpen(FileId),
 }

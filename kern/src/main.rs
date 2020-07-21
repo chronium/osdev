@@ -86,18 +86,27 @@ async fn dump() {
     for dev in DEVICE_MAP.lock().dump_names() {
         println!("Device {}", dev);
     }
+    for dev in SCHEMA_MAP.lock().inner().dump_names() {
+        println!("Schema {}", dev);
+    }
+    println!("\n");
 
     println!("find: {:?}", SCHEMA_MAP.lock().find("sys://info"));
     let info = SCHEMA_MAP.lock().open("sys://info");
     println!("open: {:?}", info);
-    println!("close: {:?}", SCHEMA_MAP.lock().close(&info.unwrap()));
+    let info = info.unwrap();
+    use alloc::{string::String, vec::Vec};
+    let mut buf = Vec::new();
+    info.read(&mut buf).ok();
+    println!("read: {:?}", String::from_utf8(buf));
+    println!("close: {:?}", info.close());
 }
 
 use lazy_static::lazy_static;
-use lib_kern::{io::DeviceMap, schema::SchemaMap};
+use lib_kern::{io::DeviceMap, schema::driver::SchemaDriver};
 lazy_static! {
     static ref DEVICE_MAP: Mutex<DeviceMap> = Mutex::new(DeviceMap::new());
-    static ref SCHEMA_MAP: Mutex<SchemaMap> = Mutex::new(SchemaMap::new());
+    static ref SCHEMA_MAP: Mutex<SchemaDriver> = Mutex::new(SchemaDriver::new());
 }
 
 #[panic_handler]
