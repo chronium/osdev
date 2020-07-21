@@ -94,10 +94,9 @@ async fn dump() {
     let info = SCHEMA_MAP.open("sys://info");
     println!("open: {:?}", info);
     let info = info.unwrap();
-    let mut buf = Vec::new();
-    info.read(&mut buf).ok();
-    println!("read: {:?}", String::from_utf8(buf));
-    println!("close: {:?}", info.close());
+    let mut buf = String::new();
+    info.read_to_string(&mut buf).ok();
+    println!("read: {}", buf);
 }
 
 use lazy_static::lazy_static;

@@ -1,5 +1,5 @@
 use super::{map::SchemaMap, FileId, SchemaError};
-use alloc::{fmt, sync::Weak, vec::Vec};
+use alloc::{fmt, string::String, sync::Weak, vec::Vec};
 use spinning::Mutex;
 
 pub struct File {
@@ -18,10 +18,23 @@ impl File {
         Weak::upgrade(&self.schema).unwrap().lock().close(&self.fid)
     }
 
-    pub fn read(&self, buf: &mut Vec<u8>) -> Result<usize, SchemaError> {
+    pub fn read_to_end(&self, buf: &mut Vec<u8>) -> Result<usize, SchemaError> {
         Weak::upgrade(&self.schema)
             .unwrap()
             .lock()
-            .read(&self.fid, buf)
+            .read_to_end(&self.fid, buf)
+    }
+
+    pub fn read_to_string(&self, buf: &mut String) -> Result<usize, SchemaError> {
+        Weak::upgrade(&self.schema)
+            .unwrap()
+            .lock()
+            .read_to_string(&self.fid, buf)
+    }
+}
+
+impl Drop for File {
+    fn drop(&mut self) {
+        let _ = self.close();
     }
 }

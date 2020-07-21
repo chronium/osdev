@@ -34,7 +34,9 @@ pub trait Schema {
 
     fn open(&mut self, path: &String, fid: FileId) -> FileResult;
     fn close(&mut self, fid: &FileId) -> FileResult;
-    fn read(&self, fid: &FileId, buf: &mut Vec<u8>) -> Result<usize, FileError>;
+
+    fn read_to_end(&self, fid: &FileId, buf: &mut Vec<u8>) -> Result<usize, FileError>;
+    fn read_to_string(&self, fid: &FileId, buf: &mut String) -> Result<usize, FileError>;
 }
 
 pub(self) fn split_schema(path: &str) -> (String, String) {

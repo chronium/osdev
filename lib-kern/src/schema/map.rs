@@ -12,8 +12,8 @@ pub struct SchemaMap {
     schema_names: HashMap<String, SchemaId>,
     schema_handles: HashMap<SchemaId, Mutex<Box<dyn Schema + Sync + Send>>>,
     next_schema: usize,
-    open_files: HashMap<String, FileId>,
-    open_paths: HashMap<FileId, String>,
+    path_fid: HashMap<String, FileId>,
+    fid_path: HashMap<FileId, String>,
     fid_schema: HashMap<FileId, SchemaId>,
     next_fid: usize,
 }
@@ -24,17 +24,17 @@ impl SchemaMap {
             schema_names: HashMap::new(),
             schema_handles: HashMap::new(),
             next_schema: 0,
-            open_files: HashMap::new(),
-            open_paths: HashMap::new(),
+            path_fid: HashMap::new(),
+            fid_path: HashMap::new(),
             fid_schema: HashMap::new(),
             next_fid: 0,
         }
     }
 
-    pub fn register(
+    pub fn register<S: Schema + Sync + Send + 'static>(
         &mut self,
         name: String,
-        mut schema: impl Schema + Sync + Send + 'static,
+        mut schema: S,
     ) -> Result<(), SchemaError> {
         if self.schema_names.contains_key(&name) {
             return Err(SchemaError::SameNameRegistered(name));
@@ -67,7 +67,7 @@ impl SchemaMap {
 
     pub fn open(&mut self, path: &str) -> Result<FileId, SchemaError> {
         let spath = path.to_string();
-        if self.open_files.contains_key(&spath) {
+        if self.path_fid.contains_key(&spath) {
             return Err(SchemaError::AlreadyOpen(spath));
         }
 
@@ -87,8 +87,8 @@ impl SchemaMap {
                     Err(FileError::AlreadyOpen) => Err(SchemaError::AlreadyOpen(spath)),
                     Ok(fid) => {
                         self.next_fid += 1;
-                        self.open_files.insert(spath.clone(), fid);
-                        self.open_paths.insert(fid, spath);
+                        self.path_fid.insert(spath.clone(), fid);
+                        self.fid_path.insert(fid, spath);
                         self.fid_schema.insert(fid, handle);
 
                         Ok(fid)
@@ -100,7 +100,7 @@ impl SchemaMap {
     }
 
     pub fn close(&mut self, fid: &FileId) -> Result<FileId, SchemaError> {
-        if !self.open_paths.contains_key(fid) {
+        if !self.fid_path.contains_key(fid) {
             return Err(SchemaError::NotOpen(*fid));
         }
 
@@ -109,9 +109,9 @@ impl SchemaMap {
 
         match schema.lock().close(fid) {
             Ok(fid) => {
-                let spath = self.open_paths.remove(&fid).unwrap();
+                let spath = self.fid_path.remove(&fid).unwrap();
                 self.fid_schema.remove(&fid);
-                self.open_files.remove(&spath);
+                self.path_fid.remove(&spath);
 
                 Ok(fid)
             }
@@ -120,8 +120,8 @@ impl SchemaMap {
         }
     }
 
-    pub fn read(&self, fid: &FileId, buf: &mut Vec<u8>) -> Result<usize, SchemaError> {
-        if !self.open_paths.contains_key(fid) {
+    pub fn read_to_end(&self, fid: &FileId, buf: &mut Vec<u8>) -> Result<usize, SchemaError> {
+        if !self.fid_path.contains_key(fid) {
             return Err(SchemaError::NotOpen(*fid));
         }
 
@@ -130,7 +130,21 @@ impl SchemaMap {
 
         schema
             .lock()
-            .read(fid, buf)
+            .read_to_end(fid, buf)
+            .or(Err(SchemaError::NoRead(*fid)))
+    }
+
+    pub fn read_to_string(&self, fid: &FileId, buf: &mut String) -> Result<usize, SchemaError> {
+        if !self.fid_path.contains_key(fid) {
+            return Err(SchemaError::NotOpen(*fid));
+        }
+
+        let handle = self.fid_schema[fid];
+        let schema = &self.schema_handles[&handle];
+
+        schema
+            .lock()
+            .read_to_string(fid, buf)
             .or(Err(SchemaError::NoRead(*fid)))
     }
 

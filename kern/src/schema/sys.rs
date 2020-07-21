@@ -9,8 +9,8 @@ use hashbrown::HashMap;
 pub struct SysSchema {
     schema_id: Option<SchemaId>,
     sysinfo: HashMap<String, String>,
-    open_files: HashMap<String, FileId>,
-    open_paths: HashMap<FileId, String>,
+    by_path: HashMap<String, FileId>,
+    by_fid: HashMap<FileId, String>,
 }
 
 impl Schema for SysSchema {
@@ -33,31 +33,41 @@ impl Schema for SysSchema {
     fn open(&mut self, path: &String, fid: FileId) -> FileResult {
         if !self.sysinfo.contains_key(path) {
             Err(FileError::NotFound)
-        } else if self.open_files.contains_key(path) {
+        } else if self.by_path.contains_key(path) {
             Err(FileError::AlreadyOpen)
         } else {
-            self.open_files.insert(path.clone(), fid);
-            self.open_paths.insert(fid, path.clone());
+            self.by_path.insert(path.clone(), fid);
+            self.by_fid.insert(fid, path.clone());
             Ok(fid)
         }
     }
 
     fn close(&mut self, fid: &FileId) -> FileResult {
-        if !self.open_paths.contains_key(fid) {
+        if !self.by_fid.contains_key(fid) {
             Err(FileError::NotFound)
         } else {
-            let spath = self.open_paths.remove(fid).unwrap();
-            self.open_files.remove(&spath);
+            let spath = self.by_fid.remove(fid).unwrap();
+            self.by_path.remove(&spath);
             Ok(*fid)
         }
     }
-    fn read(&self, fid: &FileId, buf: &mut Vec<u8>) -> Result<usize, FileError> {
-        if !self.open_paths.contains_key(fid) {
+
+    fn read_to_end(&self, fid: &FileId, buf: &mut Vec<u8>) -> Result<usize, FileError> {
+        if !self.by_fid.contains_key(fid) {
             Err(FileError::NotFound)
         } else {
-            let val = &self.sysinfo[&self.open_paths[fid]];
+            let val = &self.sysinfo[&self.by_fid[fid]];
             buf.extend_from_slice(&val.as_bytes()[..]);
             Ok(val.len())
+        }
+    }
+
+    fn read_to_string(&self, fid: &FileId, buf: &mut String) -> Result<usize, FileError> {
+        if !self.by_fid.contains_key(fid) {
+            Err(FileError::NotFound)
+        } else {
+            buf.clone_from(&self.sysinfo[&self.by_fid[fid]]);
+            Ok(buf.len())
         }
     }
 }
@@ -70,8 +80,8 @@ impl SysSchema {
         Self {
             schema_id: None,
             sysinfo,
-            open_files: HashMap::new(),
-            open_paths: HashMap::new(),
+            by_path: HashMap::new(),
+            by_fid: HashMap::new(),
         }
     }
 }
