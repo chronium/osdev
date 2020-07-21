@@ -75,27 +75,25 @@ async fn setup_schemas() {
     println!("\nSCHEMAS");
     check_ok!(
         "Registering sys schema",
-        SCHEMA_MAP
-            .lock()
-            .register("sys".to_string(), schema::sys::SysSchema::new())
+        SCHEMA_MAP.register("sys".to_string(), schema::sys::SysSchema::new())
     );
 }
 
+use alloc::{string::String, vec::Vec};
 async fn dump() {
     println!("\nDumping devices + schemas");
     for dev in DEVICE_MAP.lock().dump_names() {
         println!("Device {}", dev);
     }
-    for dev in SCHEMA_MAP.lock().inner().dump_names() {
+    for dev in SCHEMA_MAP.inner().dump_names() {
         println!("Schema {}", dev);
     }
     println!("\n");
 
-    println!("find: {:?}", SCHEMA_MAP.lock().find("sys://info"));
-    let info = SCHEMA_MAP.lock().open("sys://info");
+    println!("find: {:?}", SCHEMA_MAP.find("sys://info"));
+    let info = SCHEMA_MAP.open("sys://info");
     println!("open: {:?}", info);
     let info = info.unwrap();
-    use alloc::{string::String, vec::Vec};
     let mut buf = Vec::new();
     info.read(&mut buf).ok();
     println!("read: {:?}", String::from_utf8(buf));
@@ -106,7 +104,7 @@ use lazy_static::lazy_static;
 use lib_kern::{io::DeviceMap, schema::driver::SchemaDriver};
 lazy_static! {
     static ref DEVICE_MAP: Mutex<DeviceMap> = Mutex::new(DeviceMap::new());
-    static ref SCHEMA_MAP: Mutex<SchemaDriver> = Mutex::new(SchemaDriver::new());
+    static ref SCHEMA_MAP: SchemaDriver = SchemaDriver::new();
 }
 
 #[panic_handler]

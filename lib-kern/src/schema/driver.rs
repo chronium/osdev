@@ -13,7 +13,7 @@ impl SchemaDriver {
         }
     }
     pub fn register(
-        &mut self,
+        &self,
         name: String,
         schema: impl Schema + Sync + Send + 'static,
     ) -> Result<(), SchemaError> {
@@ -24,14 +24,14 @@ impl SchemaDriver {
         self._inner.lock().find(path)
     }
 
-    pub fn open(&mut self, path: &str) -> Result<File, SchemaError> {
+    pub fn open(&self, path: &str) -> Result<File, SchemaError> {
         Ok(File {
             fid: self._inner.lock().open(path)?,
             schema: Arc::downgrade(&self._inner),
         })
     }
 
-    pub fn close(&mut self, fid: &FileId) -> Result<FileId, SchemaError> {
+    pub fn close(&self, fid: &FileId) -> Result<FileId, SchemaError> {
         self._inner.lock().close(fid)
     }
 
